@@ -5,6 +5,7 @@ import * as THREE from "three"
 import { useStore } from "../store"
 import LipSyncController from "./LipSyncController"
 import GesturePlayer from "./GesturePlayer"
+import EmotionController from "./EmotionController"
 
 function AvatarModel({ url }: { url: string }) {
   const { scene, animations } = useGLTF(url)
@@ -25,6 +26,7 @@ function AvatarModel({ url }: { url: string }) {
     <group ref={groupRef} position={[0, -1.6, 0]}>
       <primitive object={scene} />
       <LipSyncController morphMeshes={morphMeshes} />
+      <EmotionController morphMeshes={morphMeshes} />
       <GesturePlayer scene={scene} animations={animations} groupRef={groupRef} />
     </group>
   )
@@ -32,6 +34,15 @@ function AvatarModel({ url }: { url: string }) {
 
 export default function AvatarScene() {
   const avatarUrl = useStore((s) => s.avatarUrl)
+  const prevUrl = useRef(avatarUrl)
+
+  // Evict old GLB from Three.js cache when avatar is swapped to free VRAM
+  useEffect(() => {
+    if (prevUrl.current !== avatarUrl) {
+      useGLTF.clear(prevUrl.current)
+      prevUrl.current = avatarUrl
+    }
+  }, [avatarUrl])
 
   return (
     <Canvas

@@ -5,6 +5,10 @@ import wave
 
 from config import settings
 
+# Multilingual Coqui model used when language is not English
+_COQUI_MULTILINGUAL_MODEL = "tts_models/multilingual/multi-dataset/xtts_v2"
+_COQUI_EN_MODEL = "tts_models/en/ljspeech/tacotron2-DDC"
+
 
 async def synthesize(text: str) -> bytes:
     """Return WAV-encoded audio bytes (16-bit, 16 kHz, mono) for the given text."""
@@ -48,10 +52,16 @@ async def _coqui(text: str) -> bytes:
     import numpy as np
 
     loop = asyncio.get_event_loop()
+    lang = settings.language if settings.language not in ("auto", "en") else "en"
+    use_multilingual = lang != "en"
 
     def _run():
-        tts = CoquiTTS("tts_models/en/ljspeech/tacotron2-DDC")
-        wav = tts.tts(text=text)
+        model_name = _COQUI_MULTILINGUAL_MODEL if use_multilingual else _COQUI_EN_MODEL
+        tts = CoquiTTS(model_name)
+        if use_multilingual:
+            wav = tts.tts(text=text, language=lang)
+        else:
+            wav = tts.tts(text=text)
         arr = (np.array(wav) * 32767).astype(np.int16)
         return _pcm_to_wav(arr.tobytes())
 
@@ -63,15 +73,20 @@ async def _elevenlabs(text: str) -> bytes:
     import httpx
     from pydub import AudioSegment
 
+    voice_settings: dict = {"stability": 0.5, "similarity_boost": 0.75}
+    payload: dict = {
+        "text": text,
+        "model_id": "eleven_multilingual_v2" if settings.language not in ("auto", "en") else "eleven_monolingual_v1",
+        "voice_settings": voice_settings,
+    }
+    if settings.language not in ("auto", "en"):
+        payload["language_code"] = settings.language
+
     async with httpx.AsyncClient() as client:
         r = await client.post(
             f"https://api.elevenlabs.io/v1/text-to-speech/{settings.elevenlabs_voice_id}/stream",
             headers={"xi-api-key": settings.elevenlabs_api_key},
-            json={
-                "text": text,
-                "model_id": "eleven_monolingual_v1",
-                "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
-            },
+            json=payload,
         )
         r.raise_for_status()
 
@@ -87,11 +102,15 @@ async def _openai_tts(text: str) -> bytes:
     import httpx
     from pydub import AudioSegment
 
+    payload: dict = {"model": "tts-1", "input": text, "voice": "nova"}
+    if settings.language not in ("auto", "en"):
+        payload["language"] = settings.language
+
     async with httpx.AsyncClient() as client:
         r = await client.post(
             "https://api.openai.com/v1/audio/speech",
             headers={"Authorization": f"Bearer {settings.openai_api_key}"},
-            json={"model": "tts-1", "input": text, "voice": "nova"},
+            json=payload,
         )
         r.raise_for_status()
 

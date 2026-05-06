@@ -1,9 +1,12 @@
 import asyncio
+import logging
 
 import numpy as np
 import whisper
 
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 _model = None
 
@@ -21,10 +24,15 @@ async def transcribe_pcm(pcm_bytes: bytes, sample_rate: int = 16000) -> str:
 
 
 def _transcribe_sync(pcm_bytes: bytes, sample_rate: int) -> str:
-    audio_array = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
-    if sample_rate != 16000:
-        import librosa
-        audio_array = librosa.resample(audio_array, orig_sr=sample_rate, target_sr=16000)
-    model = _get_model()
-    result = model.transcribe(audio_array, fp16=False)
-    return result["text"].strip()
+    try:
+        audio_array = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+        if sample_rate != 16000:
+            import librosa
+            audio_array = librosa.resample(audio_array, orig_sr=sample_rate, target_sr=16000)
+        model = _get_model()
+        lang = None if settings.language == "auto" else settings.language
+        result = model.transcribe(audio_array, fp16=False, language=lang)
+        return result["text"].strip()
+    except Exception as exc:
+        logger.error("STT transcription failed: %s", exc)
+        return ""
