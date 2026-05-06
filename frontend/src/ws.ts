@@ -44,6 +44,9 @@ function handleMessage(msg: Record<string, unknown>) {
     case "gesture":
       store.setGesture(msg.name as ReturnType<typeof store.setGesture> extends (g: infer G) => void ? G : never)
       break
+    case "emotion":
+      store.setEmotion(msg.name as ReturnType<typeof store.setEmotion> extends (e: infer E) => void ? E : never)
+      break
     case "audio_start":
       audioQueue.length = 0
       break
@@ -100,4 +103,8 @@ export function sendAudioEnd() {
 
 export function sendTextInput(text: string) {
   socket?.send(JSON.stringify({ type: "text_input", text }))
+}
+
+export function sendSettingsUpdate(s: Record<string, unknown>) {
+  socket?.send(JSON.stringify({ type: "settings_update", settings: s }))
 }

@@ -8,9 +8,11 @@ import wave
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from config import settings
+from emotion_detector import text_to_emotion
 from gesture import intent_to_gesture
 from hermes_client import send_message
 from lipsync import audio_to_blend_frames
+from memory import add_turn, get_history, clear_session
 from stt import transcribe_pcm
 from tts import synthesize
 
@@ -50,6 +52,7 @@ async def _handle(ws: WebSocket, msg: dict, session_id: str, audio_buffer: bytea
         if not transcript:
             return
         await ws.send_json({"type": "transcript", "text": transcript})
+        add_turn(session_id, "user", transcript)
         await _run_agent_pipeline(ws, transcript, session_id)
 
     elif t == "text_input":
@@ -60,7 +63,15 @@ async def _handle(ws: WebSocket, msg: dict, session_id: str, audio_buffer: bytea
             await ws.send_json({"type": "error", "message": f"Message too long — max {settings.max_text_length} characters."})
             return
         await ws.send_json({"type": "transcript", "text": text})
+        add_turn(session_id, "user", text)
         await _run_agent_pipeline(ws, text, session_id)
+
+    elif t == "settings_update":
+        s = msg.get("settings", {})
+        if s.get("clear_memory"):
+            clear_session(session_id)
+        if "language" in s:
+            settings.language = s["language"]
 
 
 async def _run_agent_pipeline(ws: WebSocket, text: str, session_id: str):
@@ -68,11 +79,17 @@ async def _run_agent_pipeline(ws: WebSocket, text: str, session_id: str):
     await ws.send_json({"type": "agent_thinking"})
 
     try:
-        reply_text = await send_message(text, session_id)
+        history = get_history(session_id)
+        reply_text = await send_message(text, session_id, history=history)
     except Exception as exc:
         await ws.send_json({"type": "error", "message": f"Hermes Agent unavailable: {exc}"})
         return
+
+    add_turn(session_id, "assistant", reply_text)
     await ws.send_json({"type": "agent_reply", "text": reply_text})
+
+    emotion = text_to_emotion(reply_text)
+    await ws.send_json({"type": "emotion", "name": emotion})
 
     gesture = intent_to_gesture(reply_text)
     await ws.send_json({"type": "gesture", "name": gesture})

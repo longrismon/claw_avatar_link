@@ -30,7 +30,8 @@ def _transcribe_sync(pcm_bytes: bytes, sample_rate: int) -> str:
             import librosa
             audio_array = librosa.resample(audio_array, orig_sr=sample_rate, target_sr=16000)
         model = _get_model()
-        result = model.transcribe(audio_array, fp16=False)
+        lang = None if settings.language == "auto" else settings.language
+        result = model.transcribe(audio_array, fp16=False, language=lang)
         return result["text"].strip()
     except Exception as exc:
         logger.error("STT transcription failed: %s", exc)

@@ -1,6 +1,7 @@
 import { create } from "zustand"
 
 export type GestureName = "idle" | "talking" | "wave" | "nod" | "point" | "shrug" | "thinking"
+export type EmotionName = "neutral" | "happy" | "sad" | "surprised" | "angry" | "thinking"
 
 export interface BlendFrame {
   time_ms: number
@@ -24,6 +25,8 @@ interface HermesStore {
   // Avatar
   currentGesture: GestureName
   setGesture: (g: GestureName) => void
+  currentEmotion: EmotionName
+  setEmotion: (e: EmotionName) => void
   blendFrames: BlendFrame[]
   setBlendFrames: (f: BlendFrame[]) => void
   // audioStartTime is performance.now() (ms) at the moment TTS playback begins, or null
@@ -32,6 +35,8 @@ interface HermesStore {
   // Settings
   avatarUrl: string
   setAvatarUrl: (url: string) => void
+  language: string
+  setLanguage: (l: string) => void
 }
 
 export const useStore = create<HermesStore>((set) => ({
@@ -43,10 +48,14 @@ export const useStore = create<HermesStore>((set) => ({
   setAgentThinking: (v) => set({ agentThinking: v }),
   currentGesture: "idle",
   setGesture: (g) => set({ currentGesture: g }),
+  currentEmotion: "neutral",
+  setEmotion: (e) => set({ currentEmotion: e }),
   blendFrames: [],
   setBlendFrames: (f) => set({ blendFrames: f }),
   audioStartTime: null,
   setAudioStartTime: (t) => set({ audioStartTime: t }),
   avatarUrl: "/avatars/hermes-default.glb",
   setAvatarUrl: (url) => set({ avatarUrl: url }),
+  language: "auto",
+  setLanguage: (l) => set({ language: l }),
 }))
