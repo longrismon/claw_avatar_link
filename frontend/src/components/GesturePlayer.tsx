@@ -15,7 +15,7 @@ const ANIM_PATHS: Record<GestureName, string> = {
 }
 
 // Preload all animation GLBs up front
-Object.values(ANIM_PATHS).forEach(useGLTF.preload)
+Object.values(ANIM_PATHS).forEach((path) => useGLTF.preload(path))
 
 interface Props {
   scene: THREE.Group
@@ -37,9 +37,8 @@ export default function GesturePlayer({ scene, groupRef }: Props) {
   const shrug    = useGLTF(ANIM_PATHS.shrug)
   const thinking = useGLTF(ANIM_PATHS.thinking)
 
-  const glbs: Record<GestureName, ReturnType<typeof useGLTF>> = {
-    idle, talking, wave, nod, point, shrug, thinking,
-  }
+  const glbs = { idle, talking, wave, nod, point, shrug, thinking } as
+    Record<GestureName, { animations: THREE.AnimationClip[] }>
 
   useEffect(() => {
     if (!groupRef.current) return

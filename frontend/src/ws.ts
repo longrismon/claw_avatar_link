@@ -1,6 +1,6 @@
 import { useStore } from "./store"
 
-const WS_URL = (import.meta as Record<string, Record<string, string>>).env?.VITE_WS_URL ?? "ws://localhost:8000/ws"
+const WS_URL = (import.meta.env.VITE_WS_URL as string | undefined) ?? "ws://localhost:8000/ws"
 
 const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000]
 let _retryCount = 0
