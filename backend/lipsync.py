@@ -1,10 +1,13 @@
 import asyncio
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List
 
 import numpy as np
 
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 # ARKit viseme blend shape names used by Ready Player Me
 VISEME_KEYS = [
@@ -31,7 +34,8 @@ async def audio_to_blend_frames(pcm_bytes: bytes, sample_rate: int = 16000) -> L
 def _infer_sync(pcm_bytes: bytes, sample_rate: int) -> List[BlendFrame]:
     try:
         return _latentsync_infer(pcm_bytes, sample_rate)
-    except Exception:
+    except Exception as exc:
+        logger.warning("LatentSync unavailable (%s) — using energy-based fallback", exc)
         return _fallback_energy_visemes(pcm_bytes, sample_rate)
 
 

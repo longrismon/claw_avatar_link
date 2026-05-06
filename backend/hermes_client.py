@@ -9,7 +9,7 @@ async def send_message(text: str, session_id: str) -> str:
     if settings.hermes_api_key:
         headers["Authorization"] = f"Bearer {settings.hermes_api_key}"
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=15.0) as client:
         r = await client.post(
             f"{settings.hermes_api_url}/v1/chat",
             headers=headers,

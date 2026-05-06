@@ -7,6 +7,7 @@ import wave
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from config import settings
 from gesture import intent_to_gesture
 from hermes_client import send_message
 from lipsync import audio_to_blend_frames
@@ -36,6 +37,10 @@ async def _handle(ws: WebSocket, msg: dict, session_id: str, audio_buffer: bytea
 
     if t == "audio_chunk":
         chunk = base64.b64decode(msg["data"])
+        if len(audio_buffer) + len(chunk) > settings.max_audio_bytes:
+            audio_buffer.clear()
+            await ws.send_json({"type": "error", "message": "Audio too long — max 10 MB per utterance."})
+            return
         audio_buffer.extend(chunk)
 
     elif t == "audio_end":
@@ -51,6 +56,9 @@ async def _handle(ws: WebSocket, msg: dict, session_id: str, audio_buffer: bytea
         text = msg.get("text", "").strip()
         if not text:
             return
+        if len(text) > settings.max_text_length:
+            await ws.send_json({"type": "error", "message": f"Message too long — max {settings.max_text_length} characters."})
+            return
         await ws.send_json({"type": "transcript", "text": text})
         await _run_agent_pipeline(ws, text, session_id)
 
@@ -59,7 +67,11 @@ async def _run_agent_pipeline(ws: WebSocket, text: str, session_id: str):
     """Shared pipeline: Hermes → TTS → stream audio + blend frames."""
     await ws.send_json({"type": "agent_thinking"})
 
-    reply_text = await send_message(text, session_id)
+    try:
+        reply_text = await send_message(text, session_id)
+    except Exception as exc:
+        await ws.send_json({"type": "error", "message": f"Hermes Agent unavailable: {exc}"})
+        return
     await ws.send_json({"type": "agent_reply", "text": reply_text})
 
     gesture = intent_to_gesture(reply_text)
