@@ -3,7 +3,11 @@ import os
 import struct
 import sys
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+whisper = pytest.importorskip("whisper", reason="whisper/torch not installed")
 
 from stt import transcribe_pcm
 
