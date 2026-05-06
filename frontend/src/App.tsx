@@ -2,6 +2,7 @@ import AvatarScene from "./components/AvatarScene"
 import ChatOverlay from "./components/ChatOverlay"
 import VoiceIO from "./components/VoiceIO"
 import SettingsPanel from "./components/SettingsPanel"
+import EmotionBadge from "./components/EmotionBadge"
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
     }}>
       <AvatarScene />
       <ChatOverlay />
+      <EmotionBadge />
       <SettingsPanel />
       <div style={{
         position: "absolute", bottom: 32, left: "50%",
