@@ -1,0 +1,34 @@
+import { useStore } from "../store"
+
+export default function ChatOverlay() {
+  const messages = useStore((s) => s.messages)
+  const thinking = useStore((s) => s.agentThinking)
+
+  return (
+    <div style={{
+      position: "absolute", bottom: 120, left: 20, right: 20,
+      maxHeight: 200, overflowY: "auto", display: "flex",
+      flexDirection: "column", gap: 8, pointerEvents: "none",
+    }}>
+      {messages.slice(-6).map((m, i) => (
+        <div key={i} style={{
+          alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+          background: m.role === "user" ? "rgba(30,158,117,0.85)" : "rgba(255,255,255,0.9)",
+          color: m.role === "user" ? "#fff" : "#111",
+          borderRadius: 12, padding: "6px 12px",
+          fontSize: 14, maxWidth: "75%", backdropFilter: "blur(4px)",
+        }}>
+          {m.text}
+        </div>
+      ))}
+      {thinking && (
+        <div style={{
+          alignSelf: "flex-start", background: "rgba(255,255,255,0.7)",
+          borderRadius: 12, padding: "6px 12px", fontSize: 13, color: "#555",
+        }}>
+          Hermes is thinking…
+        </div>
+      )}
+    </div>
+  )
+}

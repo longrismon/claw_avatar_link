@@ -1,0 +1,16 @@
+services:
+  backend:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      - LIPSYNC_DEVICE=cuda
+    volumes:
+      - lipsync_models:/models/lipsync
+
+volumes:
+  lipsync_models:
