@@ -1,10 +1,15 @@
 import asyncio
+import io
 import os
 import sys
 import wave
-import io
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+# Coqui TTS (default provider) requires torch — skip if not installed
+pytest.importorskip("TTS", reason="Coqui TTS not installed")
 
 
 def test_tts_returns_wav_bytes():

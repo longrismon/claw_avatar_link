@@ -2,7 +2,6 @@ import asyncio
 import logging
 
 import numpy as np
-import whisper
 
 from config import settings
 
@@ -14,6 +13,7 @@ _model = None
 def _get_model():
     global _model
     if _model is None:
+        import whisper  # lazy — avoid requiring torch at import time
         _model = whisper.load_model(settings.whisper_model)
     return _model
 

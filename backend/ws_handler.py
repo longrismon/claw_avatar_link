@@ -31,7 +31,7 @@ async def websocket_endpoint(ws: WebSocket):
             msg = json.loads(raw)
             await _handle(ws, msg, session_id, audio_buffer)
     except WebSocketDisconnect:
-        pass
+        clear_session(session_id)
 
 
 async def _handle(ws: WebSocket, msg: dict, session_id: str, audio_buffer: bytearray):
@@ -106,6 +106,17 @@ async def _run_agent_pipeline(ws: WebSocket, text: str, session_id: str):
     frames = await audio_to_blend_frames(audio_wav)
     frames_json = [{"time_ms": f.time_ms, "weights": f.weights} for f in frames]
     await ws.send_json({"type": "blend_frames", "frames": frames_json})
+
+    # Return to idle after playback finishes
+    asyncio.create_task(_delayed_idle(ws, duration_ms))
+
+
+async def _delayed_idle(ws: WebSocket, duration_ms: int) -> None:
+    await asyncio.sleep(duration_ms / 1000)
+    try:
+        await ws.send_json({"type": "gesture", "name": "idle"})
+    except Exception:
+        pass  # client disconnected before playback finished
 
 
 def _wav_duration_ms(wav_bytes: bytes) -> int:
